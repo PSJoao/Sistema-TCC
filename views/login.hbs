@@ -1,0 +1,30 @@
+<div class="flex-center">
+    <div class="card login-box">
+        <h2 class="text-center">Acessar Sistema</h2>
+        <p class="text-center page-subtitle" style="margin-bottom: var(--spacing-lg);">Plataforma de Automação de
+            Documentos</p>
+
+        {{#if error}}
+        <div
+            style="background-color: rgba(255, 71, 87, 0.1); border: 1px solid var(--color-danger); color: var(--color-danger); padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-md); margin-bottom: var(--spacing-md); font-size: 0.9rem; text-align: center;">
+            {{error}}
+        </div>
+        {{/if}}
+
+        <form action="/auth/login" method="POST">
+            <div class="form-group">
+                <label for="email" class="form-label">E-mail</label>
+                <input type="email" id="email" name="email" class="form-control" placeholder="seu@email.com" required
+                    autocomplete="email">
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Senha</label>
+                <input type="password" id="password" name="password" class="form-control" placeholder="••••••••"
+                    required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block mt-3">Entrar</button>
+        </form>
+    </div>
+</div>
