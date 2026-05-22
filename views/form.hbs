@@ -1,57 +1,98 @@
-<div class="form-container" style="max-width: 700px; margin: 0 auto;">
+<div style="max-width: 740px; margin: 0 auto;">
     <div class="dashboard-header" style="margin-bottom: var(--spacing-lg);">
-        <h1 class="page-title">Preencher Formulário Unificado</h1>
-        <p class="page-subtitle">Os campos abaixo foram extraídos automaticamente e unificados a partir dos templates
-            enviados.</p>
+        <div>
+            <h1 class="page-title">Preencher Formulário</h1>
+            <p class="page-subtitle" style="margin-bottom: 0;">
+                {{#if editavel}}
+                Os campos foram extraídos dos templates. Você pode editar os labels e placeholders antes de gerar.
+                {{else}}
+                Preencha os campos abaixo para gerar os seus documentos.
+                {{/if}}
+            </p>
+        </div>
     </div>
 
     {{#if error}}
-    <div
-        style="background-color: rgba(255, 71, 87, 0.1); border: 1px solid var(--color-danger); color: var(--color-danger); padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-md); margin-bottom: var(--spacing-md); font-size: 0.9rem; text-align: center;">
+    <div class="alert alert-error">
         {{error}}
     </div>
     {{/if}}
 
-    <div class="card" style="margin-bottom: var(--spacing-lg); border-left: 4px solid var(--color-primary);">
-        <h4 style="margin-bottom: var(--spacing-sm); color: #ffffff;">Templates incluídos neste lote:</h4>
-        <ul style="list-style: none; padding-left: 0; color: var(--color-text-muted); font-size: 0.9rem;">
+    {{#if templatesSelecionados.length}}
+    <div class="card card-static template-info-box">
+        <h4 class="template-info-title">
+            {{#if nomeGrupo}}📋 {{nomeGrupo}} — {{/if}}Templates incluídos:
+        </h4>
+        <ul class="template-list-inline">
             {{#each templatesSelecionados}}
-            <li style="margin-bottom: var(--spacing-xs); display: flex; align-items: center; gap: var(--spacing-sm);">
+            <li>
                 <span>📄</span> <strong>{{this.titulo}}</strong>
             </li>
             {{/each}}
         </ul>
     </div>
+    {{/if}}
 
-    <div class="card">
+    <div class="card card-static">
         <form action="/documentos/gerar" method="POST">
             {{#each templatesSelecionados}}
             <input type="hidden" name="templateIds[]" value="{{this._id}}">
             {{/each}}
 
-            <div class="fields-grid" style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+            {{#if grupoId}}
+            <input type="hidden" name="grupoId" value="{{grupoId}}">
+            {{/if}}
+            <input type="hidden" name="editavel" value="{{editavel}}">
+
+            <div style="display: flex; flex-direction: column; gap: var(--spacing-lg);">
                 {{#if fields.length}}
                 {{#each fields}}
-                <div class="form-group">
-                    <label for="field-{{this}}" class="form-label"
+                <div class="form-group" style="margin-bottom: 0;">
+                    {{#if ../editavel}}
+                    <!-- Modo Editável: labels e placeholders podem ser alterados -->
+                    <div style="display: flex; align-items: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-xs);">
+                        <input type="text" name="labels[{{this.campo}}]" value="{{this.label}}"
+                            class="form-control-inline form-label"
+                            style="text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 0; cursor: text;"
+                            title="Clique para editar o label">
+                    </div>
+                    {{else}}
+                    <!-- Modo Somente Preenchimento -->
+                    <label for="field-{{this.campo}}" class="form-label"
                         style="text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">
-                        {{this}}
+                        {{this.label}}
                     </label>
-                    <input type="text" id="field-{{this}}" name="valores[{{this}}]" class="form-control"
-                        placeholder="Introduza o valor para {{this}}" required>
+                    {{/if}}
+
+                    <!-- Badges de pertencimento -->
+                    <div class="field-badges">
+                        {{#each this.documentos}}
+                        <span class="badge badge-doc">📄 {{this}}</span>
+                        {{/each}}
+                    </div>
+
+                    {{#if ../editavel}}
+                    <input type="text" id="field-{{this.campo}}" name="valores[{{this.campo}}]" class="form-control"
+                        placeholder="{{this.placeholder}}" required style="margin-top: var(--spacing-sm);">
+                    <input type="hidden" name="placeholders[{{this.campo}}]" value="{{this.placeholder}}">
+                    {{else}}
+                    <input type="text" id="field-{{this.campo}}" name="valores[{{this.campo}}]" class="form-control"
+                        placeholder="{{this.placeholder}}" required style="margin-top: var(--spacing-sm);">
+                    {{/if}}
                 </div>
                 {{/each}}
                 {{else}}
-                <p style="color: var(--color-text-muted); text-align: center; padding: var(--spacing-md) 0;">
-                    Nenhuma variável dinâmica foi encontrada ou necessita de preenchimento manual nestes templates.
+                <p style="color: var(--color-text-muted); text-align: center; padding: var(--spacing-lg) 0;">
+                    Nenhuma variável dinâmica foi encontrada nos templates selecionados.
                 </p>
                 {{/if}}
             </div>
 
-            <div
-                style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-xl); border-top: 1px solid var(--color-border); padding-top: var(--spacing-lg);">
-                <a href="/upload" class="btn btn-secondary" style="flex: 1;">Cancelar</a>
-                <button type="submit" class="btn btn-primary" style="flex: 2;">Gerar Documentos Finais</button>
+            <div class="form-actions">
+                <a href="/dashboard" class="btn btn-secondary" style="flex: 1;">Cancelar</a>
+                <button type="submit" class="btn btn-primary" style="flex: 2;">
+                    Gerar Documentos Finais
+                </button>
             </div>
         </form>
     </div>

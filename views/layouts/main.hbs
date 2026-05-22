@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plataforma de Automação de Documentos</title>
+    <meta name="description" content="AutoDocs — Plataforma inteligente de automação de documentos Word com preenchimento dinâmico de variáveis.">
+    <title>AutoDocs — Automação de Documentos</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,18 +19,16 @@
     {{#if user}}
     <header class="app-header">
         <div class="logo">
-            AutoDocs
+            ✦ AutoDocs
         </div>
 
         <nav class="nav-links">
             <a href="/dashboard">Meus Templates</a>
             <a href="/upload">Geração em Lote</a>
 
-            <div
-                style="display: flex; align-items: center; gap: var(--spacing-md); margin-left: var(--spacing-xl); border-left: 1px solid var(--color-border); padding-left: var(--spacing-md);">
-                <span style="color: var(--color-text-muted); font-size: 0.9rem;">Olá,
-                    <strong>{{user.nome}}</strong></span>
-                <a href="/auth/logout" style="color: var(--color-danger); font-size: 0.9rem; font-weight: 600;">Sair</a>
+            <div class="nav-user-area">
+                <span class="nav-user-name">Olá, <strong>{{user.nome}}</strong></span>
+                <a href="/auth/logout" class="nav-logout">Sair</a>
             </div>
         </nav>
     </header>

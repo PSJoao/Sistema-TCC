@@ -1,44 +1,48 @@
-<div class="upload-container" style="max-width: 600px; margin: 0 auto;">
+<div style="max-width: 620px; margin: 0 auto;">
     <div class="dashboard-header" style="margin-bottom: var(--spacing-lg);">
-        <h1 class="page-title">Geração em Lote</h1>
-        <p class="page-subtitle">Faça o upload de até 100 templates simultâneos para mapear e unificar os campos.</p>
+        <div>
+            <h1 class="page-title">Geração em Lote</h1>
+            <p class="page-subtitle" style="margin-bottom: 0;">Faça o upload de até 100 templates simultâneos para
+                mapear e unificar os campos.</p>
+        </div>
     </div>
 
     {{#if error}}
-    <div
-        style="background-color: rgba(255, 71, 87, 0.1); border: 1px solid var(--color-danger); color: var(--color-danger); padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-md); margin-bottom: var(--spacing-md); font-size: 0.9rem; text-align: center;">
+    <div class="alert alert-error">
         {{error}}
     </div>
     {{/if}}
 
-    <div class="card">
+    <div class="card card-static">
         <form action="/templates/upload" method="POST" enctype="multipart/form-data" id="uploadForm">
+
+            <div class="form-group">
+                <label for="nomeGrupo" class="form-label">Nome do Template *</label>
+                <input type="text" id="nomeGrupo" name="nomeGrupo" class="form-control"
+                    placeholder="Ex: Contrato de Prestação de Serviços" required>
+            </div>
+
             <div class="upload-area" id="dropArea">
                 <div class="upload-icon">📤</div>
-                <h3>Arraste e solte os arquivos aqui</h3>
-                <p style="color: var(--color-text-muted); font-size: 0.9rem; margin-top: var(--spacing-sm);">
-                    ou clique para navegar pelos ficheiros
-                </p>
-                <p style="color: var(--color-text-muted); font-size: 0.8rem; margin-top: var(--spacing-xs);">
-                    Formatos aceites: .html, .txt, .hbs
-                </p>
+                <h3 class="upload-title">Arraste e solte os arquivos aqui</h3>
+                <p class="upload-hint">ou clique para navegar pelos ficheiros</p>
+                <p class="upload-formats">Formatos aceites: .docx, .txt</p>
                 <input type="file" name="templates" id="fileInput" multiple required style="display: none;"
                     accept=".docx,.txt">
             </div>
 
-            <div id="fileListContainer" style="display: none; margin-bottom: var(--spacing-lg);">
-                <h4 style="margin-bottom: var(--spacing-sm); color: var(--color-primary);">
+            <div id="fileListContainer" class="file-list-container" style="display: none;">
+                <h4 class="file-list-header">
                     Ficheiros Selecionados (<span id="fileCount">0</span>/100):
                 </h4>
-                <ul id="fileList"
-                    style="list-style: none; max-height: 200px; overflow-y: auto; border: 1px solid var(--color-border); padding: var(--spacing-sm); border-radius: var(--radius-md); background-color: var(--color-background);">
-                </ul>
+                <ul id="fileList" class="file-list"></ul>
             </div>
 
             <div style="display: flex; gap: var(--spacing-md);">
                 <a href="/dashboard" class="btn btn-secondary" style="flex: 1;">Voltar</a>
-                <button type="submit" class="btn btn-primary" id="submitBtn" style="flex: 2;" disabled>Processar
-                    Lote</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn" style="flex: 2;" disabled>
+                    Processar Lote
+                </button>
             </div>
         </form>
     </div>
@@ -103,11 +107,7 @@
 
             Array.from(files).forEach(file => {
                 const li = document.createElement('li');
-                li.textContent = file.name;
-                li.style.padding = '6px 10px';
-                li.style.borderBottom = '1px solid var(--color-border)';
-                li.style.fontSize = '0.85rem';
-                li.style.color = 'var(--color-text-main)';
+                li.innerHTML = '<span class="card-doc-icon">📄</span> ' + file.name;
                 fileList.appendChild(li);
             });
         } else {

@@ -61,5 +61,13 @@ module.exports = {
         if (!data) return '';
         const d = new Date(data);
         return d.toLocaleDateString('pt-BR');
+    },
+
+    /**
+     * Helper para serializar objetos JSON para uso em scripts do lado do cliente
+     * Uso: {{{json objeto}}}
+     */
+    json: function (contexto) {
+        return JSON.stringify(contexto);
     }
 };

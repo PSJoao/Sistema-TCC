@@ -89,7 +89,14 @@ class DocumentService {
                 const bufferGerado = doc.getZip().generate({ type: "nodebuffer" });
 
                 // 3. Persistência do Ficheiro Físico no Disco do Servidor
-                const nomeFicheiro = `documento_${template._id}_${Date.now()}.docx`;
+                // Nome legível: NomeDoDocumento_SERIAL.docx
+                const serial = Date.now().toString(36).toUpperCase().slice(-5);
+                const nomeBase = template.titulo
+                    .replace(/[^a-zA-Z0-9_\-\sàáâãéêíóôõúçÀÁÂÃÉÊÍÓÔÕÚÇ]/g, '')
+                    .trim()
+                    .replace(/\s+/g, '_');
+                const nomeFicheiro = `${nomeBase}_${serial}.docx`;
+
                 const pastaDownloads = path.join(__dirname, '../public/downloads');
 
                 // Garante que a pasta de downloads existe
@@ -115,6 +122,7 @@ class DocumentService {
                     titulo: template.titulo,
                     idDocumento: novoDocumento._id,
                     arquivoUrl: urlFicheiro,
+                    nomeFicheiro: nomeFicheiro,
                     isWord: true // Flag indicativa para a interface visual
                 });
 

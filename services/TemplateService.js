@@ -7,10 +7,10 @@ const mammoth = require('mammoth');
  */
 class TemplateService {
     /**
-     * Processa um lote de ficheiros de template, extraindo as variáveis para o formulário
+     * Processa um lote de ficheiros de template, extraindo as variáveis POR DOCUMENTO
      * e mantendo a estrutura binária original para o docxtemplater.
      * @param {Array} files - Ficheiros vindos do Multer (memoryStorage)
-     * @returns {Promise<Object>} - Campos unificados e os buffers dos templates
+     * @returns {Promise<Object>} - Campos unificados, campos por documento e os buffers dos templates
      */
     async processarLoteTemplates(files) {
         const camposUnificados = new Set();
@@ -19,6 +19,7 @@ class TemplateService {
         for (const file of files) {
             let textoBruto = '';
             const extensao = file.originalname.split('.').pop().toLowerCase();
+            const camposDoDocumento = new Set();
 
             // 1. Extração de texto para mapeamento de variáveis
             if (extensao === 'docx') {
@@ -43,8 +44,9 @@ class TemplateService {
 
                     // Ignora a palavra reservada do nosso helper de cálculo
                     if (palavra !== 'calc') {
-                        // Regra de Negócio: Case-insensitive para unificar o formulário
-                        camposUnificados.add(palavra.toLowerCase());
+                        const campoNormalizado = palavra.toLowerCase();
+                        camposUnificados.add(campoNormalizado);
+                        camposDoDocumento.add(campoNormalizado);
                     }
                 }
             }
@@ -53,7 +55,8 @@ class TemplateService {
             // Guardamos o file.buffer (binário puro do Word) para manter 100% da formatação
             templatesProcessados.push({
                 titulo: file.originalname.replace(/\.[^/.]+$/, ""), // Remove a extensão do título
-                arquivo_original: file.buffer
+                arquivo_original: file.buffer,
+                campos: Array.from(camposDoDocumento) // Campos específicos deste documento
             });
         }
 

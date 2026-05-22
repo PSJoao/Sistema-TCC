@@ -1,50 +1,58 @@
-<div class="dashboard-header"
-    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg); flex-wrap: wrap; gap: var(--spacing-md);">
+<div class="dashboard-header">
     <div>
         <h1 class="page-title">Meus Templates</h1>
-        <p class="page-subtitle">Faça a gestão dos seus modelos de documentos dinâmicos.</p>
+        <p class="page-subtitle" style="margin-bottom: 0;">Faça a gestão dos seus modelos de documentos dinâmicos.</p>
     </div>
     <a href="/upload" class="btn btn-primary">
-        + Adicionar Templates
+        + Novo Template
     </a>
 </div>
 
 <div class="grid-cards">
-    {{#if templates.length}}
-    {{#each templates}}
+    {{#if grupos.length}}
+    {{#each grupos}}
     <div class="card">
-        <h3 style="margin-bottom: var(--spacing-sm);">{{this.titulo}}</h3>
+        <div class="card-header-area">
+            <h3 class="card-title">{{this.nome}}</h3>
+            <div class="card-meta">
+                <span class="card-meta-icon">📅</span>
+                <span>{{this.dataCriacao}}</span>
+                <span class="badge badge-count">{{this.quantidadeDocumentos}} doc(s)</span>
+            </div>
+        </div>
 
-        <p style="color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: var(--spacing-md);">
-            Adicionado em: {{this.dataCriacao}}
-        </p>
+        <ul class="card-docs-list">
+            {{#each this.documentos}}
+            <li class="card-doc-item">
+                <span class="card-doc-icon">📄</span>
+                <span>{{this.titulo}}</span>
+            </li>
+            {{/each}}
+        </ul>
 
-        <div style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
-            <a href="/documentos/gerar/{{this._id}}" class="btn btn-primary"
-                style="flex: 1; padding: 8px 12px; font-size: 0.9rem;">
-                Gerar
+        <div class="card-actions">
+            <a href="/documentos/gerar/{{this._id}}" class="btn btn-primary btn-sm" style="flex: 1;">
+                ▶ Gerar
             </a>
 
-            <a href="/templates/editar/{{this._id}}" class="btn btn-secondary"
-                style="padding: 8px 12px; font-size: 0.9rem;">
-                Editar
+            <a href="/templates/editar/{{this._id}}" class="btn btn-secondary btn-sm" style="flex: 1;">
+                ✏️ Editar
             </a>
 
-            <form action="/templates/excluir/{{this._id}}" method="POST" style="display: inline;"
-                onsubmit="return confirm('Tem a certeza que deseja eliminar este template?');">
-                <button type="submit" class="btn btn-danger" style="padding: 8px 12px; font-size: 0.9rem;">
-                    Excluir
+            <form action="/templates/excluir/{{this._id}}" method="POST" style="flex: 1; display: contents;"
+                onsubmit="return confirm('Tem a certeza que deseja eliminar este template e todos os seus documentos?');">
+                <button type="submit" class="btn btn-danger btn-sm" style="width: 100%;">
+                    🗑 Excluir
                 </button>
             </form>
         </div>
     </div>
     {{/each}}
     {{else}}
-    <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem;">
-        <div style="font-size: 3rem; margin-bottom: var(--spacing-md); color: var(--color-border);">📄</div>
-        <h3 style="color: var(--color-text-main);">Nenhum template encontrado</h3>
-        <p style="color: var(--color-text-muted); margin-bottom: var(--spacing-lg);">Ainda não fez o upload de nenhum
-            modelo de documento para o sistema.</p>
+    <div class="card card-static empty-state">
+        <div class="empty-state-icon">📄</div>
+        <h3 class="empty-state-title">Nenhum template encontrado</h3>
+        <p class="empty-state-text">Ainda não fez o upload de nenhum modelo de documento para o sistema.</p>
         <a href="/upload" class="btn btn-primary">
             Fazer o Primeiro Upload
         </a>
