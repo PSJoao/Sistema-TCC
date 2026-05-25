@@ -1,0 +1,95 @@
+<div style="max-width: 900px; margin: 0 auto; padding-bottom: var(--spacing-2xl);">
+    <div class="dashboard-header" style="margin-bottom: var(--spacing-xl);">
+        <div>
+            <h1 class="page-title">Manual de Uso do Sistema</h1>
+            <p class="page-subtitle" style="margin-bottom: 0;">Guia oficial para a formatação e automação estrutural de documentos.</p>
+        </div>
+    </div>
+
+    <div class="card card-static" style="margin-bottom: var(--spacing-lg);">
+        <h2 style="font-size: 1.4rem; color: var(--color-primary-light); margin-bottom: var(--spacing-md);">1. Visão Geral da Arquitetura</h2>
+        <p style="color: var(--color-text-secondary); line-height: 1.7; margin-bottom: var(--spacing-md);">
+            O sistema AutoDocs funciona injetando informações contextuais diretamente em matrizes de documentos Word (.docx). A plataforma lê estruturalmente o arquivo, identifica pontos de injeção (tags) e realiza a substituição mantendo rigorosamente a formatação original do arquivo, incluindo fontes, tabelas, espaçamentos e margens.
+        </p>
+    </div>
+
+    <div class="card card-static" style="margin-bottom: var(--spacing-lg);">
+        <h2 style="font-size: 1.4rem; color: var(--color-primary-light); margin-bottom: var(--spacing-md);">2. Injeção de Variáveis de Texto Simples</h2>
+        <p style="color: var(--color-text-secondary); line-height: 1.7; margin-bottom: var(--spacing-md);">
+            Para definir onde uma informação deve ser inserida, utilize chaves duplas envolvendo o nome do campo desejado. O nome da variável deve ser claro e descritivo.
+        </p>
+        
+        <div style="background: rgba(0,0,0,0.3); padding: var(--spacing-md); border-radius: var(--radius-sm); border: 1px solid var(--color-border); margin-bottom: var(--spacing-md);">
+            <strong style="color: var(--color-text-main);">Sintaxe correta:</strong><br>
+            <code style="color: #a78bfa; font-family: monospace;">\{{nome_completo}}</code><br>
+            <code style="color: #a78bfa; font-family: monospace;">\{{cpf_cliente}}</code><br>
+            <code style="color: #a78bfa; font-family: monospace;">\{{endereco_residencial}}</code>
+        </div>
+        
+        <p style="color: var(--color-text-secondary); line-height: 1.7; margin-bottom: 0;">
+            A plataforma extrairá todos estes nomes e gerará automaticamente um formulário estruturado para preenchimento. Nomes de variáveis devem utilizar sublinhados (_) em vez de espaços e não devem conter acentos ou caracteres especiais.
+        </p>
+    </div>
+
+    <div class="card card-static" style="margin-bottom: var(--spacing-lg);">
+        <h2 style="font-size: 1.4rem; color: var(--color-primary-light); margin-bottom: var(--spacing-md);">3. Motor de Cálculo Matemático Avançado</h2>
+        <p style="color: var(--color-text-secondary); line-height: 1.7; margin-bottom: var(--spacing-md);">
+            O sistema atua como uma calculadora completa de alta precisão. É possível programar o documento para realizar operações matemáticas automáticas com base nos valores que serão preenchidos.
+        </p>
+        
+        <p style="color: var(--color-text-secondary); line-height: 1.7; margin-bottom: var(--spacing-md);">
+            Para acionar este recurso, iniciamos a diretiva com <code style="color: #a78bfa; font-family: monospace;">calc</code>, seguida do cálculo desejado entre aspas. O sistema interpreta os seguintes símbolos matemáticos universais:
+        </p>
+
+        <ul style="color: var(--color-text-secondary); line-height: 1.7; padding-left: var(--spacing-lg); margin-bottom: var(--spacing-md);">
+            <li><strong>Sinal de Adição (+):</strong> Utilizado para somar valores.</li>
+            <li><strong>Sinal de Subtração (-):</strong> Utilizado para diminuir valores.</li>
+            <li><strong>Sinal de Multiplicação (*):</strong> Representado pelo asterisco. Utilizado para multiplicar valores ou calcular taxas.</li>
+            <li><strong>Sinal de Divisão (/):</strong> Representado pela barra. Utilizado para dividir valores (por exemplo, para encontrar o valor de uma parcela).</li>
+            <li><strong>Sinal de Potenciação (**):</strong> Representado por dois asteriscos. Utilizado para elevar um número a uma potência (por exemplo, em cálculos de juros compostos).</li>
+            <li><strong>Parênteses ( ):</strong> Utilizados para definir a prioridade do cálculo. O que estiver dentro dos parênteses será resolvido primeiro pelo sistema.</li>
+        </ul>
+        
+        <div style="background: rgba(0,0,0,0.3); padding: var(--spacing-md); border-radius: var(--radius-sm); border: 1px solid var(--color-border); margin-bottom: var(--spacing-md);">
+            <strong style="color: var(--color-text-main);">Exemplos Práticos e Didáticos:</strong><br><br>
+            
+            <span style="color: var(--color-text-muted);">Soma e Subtração Básicas:</span><br>
+            <code style="color: #a78bfa; font-family: monospace;">\{{calc "valor_inicial + acrescimo - desconto"}}</code><br><br>
+            
+            <span style="color: var(--color-text-muted);">Multiplicação (Ex: Calcular multa de 10%):</span><br>
+            <code style="color: #a78bfa; font-family: monospace;">\{{calc "valor_boleto * 0.10"}}</code><br><br>
+
+            <span style="color: var(--color-text-muted);">Divisão (Ex: Dividir um montante total por um número de meses):</span><br>
+            <code style="color: #a78bfa; font-family: monospace;">\{{calc "valor_total / meses_parcelamento"}}</code><br><br>
+
+            <span style="color: var(--color-text-muted);">Potenciação (Ex: Aplicar uma taxa exponencial ao longo do tempo):</span><br>
+            <code style="color: #a78bfa; font-family: monospace;">\{{calc "capital * (1.05 ** meses)"}}</code><br><br>
+            
+            <span style="color: var(--color-text-muted);">Uso de Parênteses (Ex: O sistema fará primeiro a subtração, e dividirá o resultado pelo número de partes):</span><br>
+            <code style="color: #a78bfa; font-family: monospace;">\{{calc "(valor_bruto - imposto_retido) / partes_iguais"}}</code>
+        </div>
+        
+        <p style="color: var(--color-text-secondary); line-height: 1.7; margin-bottom: 0;">
+            O sistema converte as informações inseridas para o formato numérico automaticamente e garante que o resultado seja exato. Valores com frações ou dízimas serão limitados de maneira inteligente a até <strong>cinco casas decimais</strong>.
+        </p>
+    </div>
+
+    <div class="card card-static" style="margin-bottom: var(--spacing-lg);">
+        <h2 style="font-size: 1.4rem; color: var(--color-primary-light); margin-bottom: var(--spacing-md);">4. Gestão de Lotes (Múltiplos Documentos)</h2>
+        <p style="color: var(--color-text-secondary); line-height: 1.7; margin-bottom: var(--spacing-md);">
+            O sistema é projetado para operar processos complexos de documentação. Pode-se associar até 100 arquivos do Word a um único "Template" (Lote). 
+        </p>
+        <p style="color: var(--color-text-secondary); line-height: 1.7; margin-bottom: 0;">
+            Quando variáveis de mesmo nome (ex: <code style="color: #a78bfa; font-family: monospace;">nome_cliente</code>) existem em múltiplos documentos distintos do mesmo lote, a plataforma irá unificar a requisição da informação no formulário. A entrada fornecida será espelhada simultaneamente para todos os documentos correspondentes. Após a geração, a plataforma compactará todo o lote processado em um único arquivo (.zip) para eficiência operacional.
+        </p>
+    </div>
+
+    <div class="card card-static">
+        <h2 style="font-size: 1.4rem; color: var(--color-danger); margin-bottom: var(--spacing-md);">5. Regras Críticas e Prevenção de Erros</h2>
+        <ul style="color: var(--color-text-secondary); line-height: 1.7; padding-left: var(--spacing-lg);">
+            <li style="margin-bottom: var(--spacing-sm);"><strong>Formatação Interna Limpa:</strong> O Microsoft Word por vezes adiciona formatações ocultas dentro das próprias chaves <code style="color: #a78bfa; font-family: monospace;">\{{ }}</code> (por exemplo, deixando apenas uma chave em negrito ou com uma fonte diferente). O bloco inteiro da variável deve possuir rigorosamente a mesma formatação textual.</li>
+            <li style="margin-bottom: var(--spacing-sm);"><strong>Nomes sem Espaços:</strong> Evite utilizar espaços entre as palavras das variáveis. Se uma variável tiver múltiplas palavras, utilize a separação por sublinhado (snake_case), ex: <code style="color: #a78bfa; font-family: monospace;">\{{dados_do_imovel}}</code>.</li>
+            <li style="margin-bottom: var(--spacing-sm);"><strong>Cálculos Sem Variáveis Temporárias:</strong> A diretiva `calc` deve possuir toda a lógica na mesma linha.</li>
+        </ul>
+    </div>
+</div>

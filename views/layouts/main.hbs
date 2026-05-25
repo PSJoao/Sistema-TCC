@@ -4,12 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AutoDocs — Plataforma inteligente de automação de documentos Word com preenchimento dinâmico de variáveis.">
+    <meta name="description"
+        content="AutoDocs — Plataforma inteligente de automação de documentos Word com preenchimento dinâmico de variáveis.">
     <title>AutoDocs — Automação de Documentos</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link rel="icon" type="image/png" href="/images/icone.png">
 
     <link rel="stylesheet" href="/css/main.css">
 </head>
@@ -18,13 +22,29 @@
 
     {{#if user}}
     <header class="app-header">
-        <div class="logo">
-            ✦ AutoDocs
-        </div>
+        <a href="/dashboard" class="logo" style="text-decoration: none;">
+            <img src="/images/logo-autodocs.png" alt="AutoDocs Logo" class="logo-img">
+            AutoDocs
+        </a>
 
-        <nav class="nav-links">
+        <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <nav class="nav-links" id="nav-links">
             <a href="/dashboard">Meus Templates</a>
-            <a href="/upload">Geração em Lote</a>
+
+            {{#if (ne user.cargo 'funcionario')}}
+            <a href="/upload">Novo Template</a>
+            {{/if}}
+
+            <a href="/tutorial">Tutorial</a>
+
+            {{#if (eq user.cargo 'mestra')}}
+            <a href="/usuarios">Gestão de Usuários</a>
+            {{/if}}
 
             <div class="nav-user-area">
                 <span class="nav-user-name">Olá, <strong>{{user.nome}}</strong></span>
@@ -38,6 +58,8 @@
         {{{body}}}
     </main>
 
+    <script src="/scripts/modalSystem.js"></script>
+    <script src="/scripts/navigation.js"></script>
 </body>
 
 </html>

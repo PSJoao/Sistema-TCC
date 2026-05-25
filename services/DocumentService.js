@@ -4,6 +4,7 @@ const path = require('path');
 const PizZip = require('pizzip');
 const Docxtemplater = require('docxtemplater');
 const Template = require('../models/Template');
+const TemplateGroup = require('../models/TemplateGroup');
 const DocumentoGerado = require('../models/DocumentoGerado');
 
 /**
@@ -16,10 +17,10 @@ class DocumentService {
      * original, executa fórmulas matemáticas e gera os ficheiros .docx finais.
      * @param {Array<string>} templateIds - IDs do lote de templates selecionados
      * @param {Object} valoresFormulario - JSON com as variáveis vindas do formulário
-     * @param {string} idUsuario - ID do utilizador autenticado
+     * @param {Object} user - O utilizador autenticado completo
      * @returns {Promise<Array>} - Lista com os metadados dos documentos gerados
      */
-    async gerarDocumentosEmMassa(templateIds, valoresFormulario, idUsuario) {
+    async gerarDocumentosEmMassa(templateIds, valoresFormulario, user) {
         const documentosCompilados = [];
 
         // 1. Proxy de Engenharia Avançada para o Docxtemplater
@@ -48,7 +49,8 @@ class DocumentService {
 
                         // Executa a expressão de forma isolada e segura
                         const resultado = new Function('return ' + expressaoPreenchida)();
-                        return Number.isInteger(resultado) ? resultado : resultado.toFixed(2);
+                        // Arredonda para no máximo 5 casas decimais (ex: 1.12345), mas remove zeros inúteis no final
+                        return Number.isInteger(resultado) ? resultado : parseFloat(resultado.toFixed(5));
                     } catch (erro) {
                         console.error(`[Proxy Calc] Erro na fórmula do Word "${tagBruta}":`, erro.message);
                         return "[Erro no Cálculo]";
@@ -60,12 +62,39 @@ class DocumentService {
             }
         });
 
+        const zipFinal = new PizZip();
+        const serialLote = Date.now().toString(36).toUpperCase().slice(-5);
+        const pastaDownloads = path.join(__dirname, '../public/downloads');
+
+        // Garante que a pasta de downloads existe
+        if (!fs.existsSync(pastaDownloads)) {
+            fs.mkdirSync(pastaDownloads, { recursive: true });
+        }
+
         // 2. Processamento do Lote de Ficheiros Word
         for (const idTemplate of templateIds) {
-            const template = await Template.findOne({ _id: idTemplate, id_usuario: idUsuario });
+            const template = await Template.findOne({ _id: idTemplate, deletado: { $ne: true } });
 
             if (!template) {
                 throw new Error(`Template ${idTemplate} não encontrado ou sem permissão.`);
+            }
+
+            // Validar permissão através do grupo
+            const grupo = await TemplateGroup.findOne({ _id: template.id_grupo, deletado: { $ne: true } });
+            if (!grupo) {
+                throw new Error(`Template ${template.titulo} não pertence a um grupo ativo.`);
+            }
+
+            const workspaceId = user.cargo === 'mestra' ? user._id : user.id_mestra;
+            if (grupo.id_mestra.toString() !== workspaceId.toString()) {
+                throw new Error(`Template ${idTemplate} não encontrado ou sem permissão.`);
+            }
+
+            if (user.cargo === 'funcionario') {
+                const temPerm = grupo.permissoes.some(p => p.id_usuario.toString() === user._id.toString());
+                if (!temPerm) {
+                    throw new Error(`Template ${idTemplate} não encontrado ou sem permissão.`);
+                }
             }
 
             try {
@@ -88,30 +117,23 @@ class DocumentService {
                 // Gera o Buffer binário final do novo arquivo Word processado
                 const bufferGerado = doc.getZip().generate({ type: "nodebuffer" });
 
-                // 3. Persistência do Ficheiro Físico no Disco do Servidor
-                // Nome legível: NomeDoDocumento_SERIAL.docx
-                const serial = Date.now().toString(36).toUpperCase().slice(-5);
+                // 3. Adiciona ao ZIP final
                 const nomeBase = template.titulo
                     .replace(/[^a-zA-Z0-9_\-\sàáâãéêíóôõúçÀÁÂÃÉÊÍÓÔÕÚÇ]/g, '')
                     .trim()
                     .replace(/\s+/g, '_');
-                const nomeFicheiro = `${nomeBase}_${serial}.docx`;
+                const nomeFicheiro = `${nomeBase}_${serialLote}.docx`;
 
-                const pastaDownloads = path.join(__dirname, '../public/downloads');
+                zipFinal.file(nomeFicheiro, bufferGerado);
 
-                // Garante que a pasta de downloads existe
-                if (!fs.existsSync(pastaDownloads)) {
-                    fs.mkdirSync(pastaDownloads, { recursive: true });
-                }
-
-                // Grava o arquivo Word final com fidelidade absoluta de design
+                // Grava também o ficheiro individual no disco por garantia/histórico
                 fs.writeFileSync(path.join(pastaDownloads, nomeFicheiro), bufferGerado);
 
                 // 4. Registo Histórico da Geração (Mongoose)
                 const urlFicheiro = `/downloads/${nomeFicheiro}`;
                 const novoDocumento = new DocumentoGerado({
                     id_template: template._id,
-                    id_usuario: idUsuario,
+                    id_usuario: user._id,
                     dados_variaveis: valoresFormulario,
                     arquivo_url: urlFicheiro
                 });
@@ -132,7 +154,15 @@ class DocumentService {
             }
         }
 
-        return documentosCompilados;
+        // Gera o Buffer do ZIP final contendo todos os docs
+        const zipFinalBuffer = zipFinal.generate({ type: "nodebuffer", compression: "DEFLATE" });
+        const nomeZip = `Documentos_${serialLote}.zip`;
+        fs.writeFileSync(path.join(pastaDownloads, nomeZip), zipFinalBuffer);
+
+        return {
+            zipUrl: `/downloads/${nomeZip}`,
+            documentos: documentosCompilados
+        };
     }
 }
 

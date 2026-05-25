@@ -23,10 +23,17 @@ async function protectRoute(req, res, next) {
         // 3. Procura o utilizador na Base de Dados para garantir que a conta ainda existe
         const userRecord = await User.findById(decodedPayload.id).select('-senha'); // Exclui a hash da senha por segurança
 
-        if (!userRecord) {
-            console.log('[Auth Middleware] Utilizador associado ao token já não existe.');
+        if (!userRecord || userRecord.deletado) {
+            console.log('[Auth Middleware] Utilizador associado ao token já não existe ou foi excluído.');
             res.clearCookie('auth_token');
             return res.redirect('/login');
+        }
+
+        // Verifica se a conta está ativa
+        if (!userRecord.ativo) {
+            console.log('[Auth Middleware] Acesso negado. Conta inativada.');
+            res.clearCookie('auth_token');
+            return res.redirect('/auth/login?error=Conta%20inativada');
         }
 
         // 4. Injeta os dados do utilizador na requisição e nas variáveis locais do Handlebars
@@ -48,6 +55,23 @@ async function protectRoute(req, res, next) {
     }
 }
 
+
+
+/**
+ * Middleware para autorizar acesso apenas a cargos específicos.
+ * Deve ser usado APÓS o protectRoute.
+ */
+function authorizeRoles(...roles) {
+    return (req, res, next) => {
+        if (!req.user || !roles.includes(req.user.cargo)) {
+            console.log(`[Auth Middleware] Acesso negado para o cargo ${req.user ? req.user.cargo : 'desconhecido'}. Exigido: ${roles.join(', ')}`);
+            return res.status(403).send('Acesso Negado: Privilégios insuficientes.');
+        }
+        next();
+    };
+}
+
 module.exports = {
-    protectRoute
+    protectRoute,
+    authorizeRoles
 };

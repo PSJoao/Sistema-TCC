@@ -1,0 +1,71 @@
+<div id="gestao-usuarios-container" data-alias="{{user.mestra_alias}}">
+<div class="dashboard-header" style="margin-bottom: var(--spacing-xl);">
+    <div>
+        <h1 class="page-title">Gestão de Usuários</h1>
+        <p class="page-subtitle" style="margin-bottom: 0;">Administre o acesso da sua equipe à plataforma. O seu Workspace Alias é: <strong style="color: var(--color-primary-light);">@{{user.mestra_alias}}</strong></p>
+    </div>
+    <button class="btn btn-primary" onclick="abrirModalCriarUsuario()">+ Novo Usuário</button>
+</div>
+
+<!-- Filtro de busca inteligente -->
+<div style="margin-bottom: var(--spacing-md); display: flex; gap: var(--spacing-md); align-items: center; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 250px; position: relative;">
+        <input type="text" id="buscaFuncionario" class="form-control" placeholder="Buscar funcionário pelo nome ou login..." style="background: var(--color-bg-tertiary); padding-left: 40px;">
+        <i class="ph ph-magnifying-glass" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); font-size: 1.1rem;"></i>
+    </div>
+</div>
+
+<div class="card card-static" style="padding: 0; overflow: hidden;">
+    <div class="table-responsive">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; color: var(--color-text-main);">
+            <thead style="background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--color-border);">
+                <tr>
+                <th style="padding: var(--spacing-md); font-weight: 500;">Nome</th>
+                <th style="padding: var(--spacing-md); font-weight: 500;">Login / E-mail</th>
+                <th style="padding: var(--spacing-md); font-weight: 500;">Cargo</th>
+                <th style="padding: var(--spacing-md); font-weight: 500;">Status</th>
+                <th style="padding: var(--spacing-md); font-weight: 500; text-align: right;">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#if usuarios.length}}
+                {{#each usuarios}}
+                <tr style="border-bottom: 1px solid var(--color-border);">
+                    <td style="padding: var(--spacing-md);">{{this.nome}}</td>
+                    <td style="padding: var(--spacing-md); font-family: monospace; color: var(--color-primary-light);">{{this.email}}</td>
+                    <td style="padding: var(--spacing-md);">
+                        <select class="form-control" style="background: var(--color-bg-tertiary); max-width: 160px; padding: 6px 12px; font-size: 0.85rem; height: auto;" onchange="alterarCargo('{{this._id}}', this.value)">
+                            <option value="funcionario" {{#if (eq this.cargo 'funcionario')}}selected{{/if}}>Funcionário</option>
+                            <option value="admin" {{#if (eq this.cargo 'admin')}}selected{{/if}}>Administrador</option>
+                        </select>
+                    </td>
+                    <td style="padding: var(--spacing-md);">
+                        {{#if this.ativo}}
+                            <span style="color: var(--color-success);"><i class="ph-fill ph-check-circle"></i> Ativo</span>
+                        {{else}}
+                            <span style="color: var(--color-danger);"><i class="ph-fill ph-x-circle"></i> Inativo</span>
+                        {{/if}}
+                    </td>
+                    <td style="padding: var(--spacing-md); text-align: right; display: flex; gap: 8px; justify-content: flex-end;">
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.9rem;" onclick="alternarStatus('{{this._id}}')">
+                            {{#if this.ativo}}Desativar{{else}}Ativar{{/if}}
+                        </button>
+                        <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.9rem;" onclick="excluirUsuario('{{this._id}}')">Excluir</button>
+                    </td>
+                </tr>
+                {{/each}}
+            {{else}}
+                <tr>
+                    <td colspan="5" style="padding: var(--spacing-xl); text-align: center; color: var(--color-text-muted);">
+                        Nenhum usuário subordinado encontrado. Crie um novo para começar.
+                    </td>
+                </tr>
+            {{/if}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div>
+
+<script src="/scripts/gestao-usuarios.js"></script>

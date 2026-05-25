@@ -21,7 +21,10 @@ const criarUsuarioInicial = async () => {
         const novoUsuario = new User({
             nome: 'João',
             email: 'joao@teste.com',
-            senha: '123' // O hook 'pre-save' do nosso model vai encriptar isso automaticamente!
+            senha: '123', // O hook 'pre-save' do nosso model vai encriptar isso automaticamente!
+            cargo: 'mestra',
+            mestra_alias: 'joao',
+            ativo: true
         });
 
         await novoUsuario.save();

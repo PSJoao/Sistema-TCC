@@ -1,0 +1,55 @@
+<div class="flex-center">
+    <div class="card card-static login-box" style="width: 100%; max-width: 480px;">
+        <h2 class="login-title">Criar Conta</h2>
+        <p class="login-subtitle">Crie um workspace para a sua empresa</p>
+
+        {{#if error}}
+        <div class="alert alert-error">
+            {{error}}
+        </div>
+        {{/if}}
+
+        <form action="/auth/register" method="POST">
+            <div class="form-group">
+                <label for="nome" class="form-label">Nome Completo</label>
+                <input type="text" id="nome" name="nome" class="form-control" placeholder="Seu nome" required
+                    value="{{nome}}">
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="form-label">E-mail</label>
+                <input type="email" id="email" name="email" class="form-control" placeholder="seu@email.com" required
+                    value="{{email}}">
+            </div>
+
+            <div class="form-group">
+                <label for="alias" class="form-label">Identificador Curto (Workspace Alias)</label>
+                <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 8px;">
+                    Este será o sufixo dos seus funcionários.
+                </p>
+                <div
+                    style="display: flex; align-items: center; background: var(--color-bg-tertiary); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding-left: 12px;">
+                    <span style="color: var(--color-text-muted); font-weight: bold; font-size: 1.1rem;">@</span>
+                    <input type="text" id="alias" name="alias" class="form-control" placeholder="suaempresa" required
+                        value="{{alias}}"
+                        style="border: none; background: transparent; padding-left: 4px; outline: none; box-shadow: none;">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: var(--spacing-md);">
+                <label for="password" class="form-label">Senha</label>
+                <input type="password" id="password" name="password" class="form-control" placeholder="••••••••"
+                    required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block mt-3">Criar Conta</button>
+
+            <div style="text-align: center; margin-top: var(--spacing-lg);">
+                <span style="color: var(--color-text-muted);">Já possui uma conta?</span>
+                <a href="/auth/login"
+                    style="color: var(--color-primary); text-decoration: none; font-weight: 500; margin-left: 4px;">Fazer
+                    Login</a>
+            </div>
+        </form>
+    </div>
+</div>

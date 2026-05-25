@@ -9,6 +9,7 @@ const connectDB = require('./config/database');
 const authRoutes = require('./routes/authRoutes');
 const templateRoutes = require('./routes/templateRoutes');
 const documentRoutes = require('./routes/documentRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 // Importação dos Helpers Matemáticos e Utilitários Customizados para o Handlebars
 const customHelpers = require('./helpers/handlebars-helpers');
@@ -54,6 +55,7 @@ app.get('/', (req, res) => res.redirect('/auth/login'));
 app.use('/auth', authRoutes);         // Gerencia login e logout
 app.use('/', templateRoutes);        // Gerencia dashboard, telas de upload e remoção de templates
 app.use('/documentos', documentRoutes); // Gerencia a compilação do super formulário unificado
+app.use('/usuarios', userRoutes);       // Gerencia o CRUD de usuários pela Mestra
 
 // 8. Inicialização do Servidor e Escuta na Porta Definida
 const PORT = process.env.PORT;

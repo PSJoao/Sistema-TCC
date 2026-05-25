@@ -18,6 +18,67 @@ const renderLoginPage = (req, res) => {
 };
 
 /**
+ * Renderiza a página de registro de conta Mestra.
+ */
+const renderRegisterPage = (req, res) => {
+    if (req.cookies && req.cookies.auth_token) {
+        return res.redirect('/dashboard');
+    }
+    res.render('register');
+};
+
+/**
+ * Processa o registro de uma nova conta Mestra.
+ */
+const handleRegister = async (req, res) => {
+    try {
+        const { nome, email, password, alias } = req.body;
+
+        if (!nome || !email || !password || !alias) {
+            return res.render('register', { error: 'Todos os campos são obrigatórios.', nome, email, alias });
+        }
+
+        // Verifica se já existe um usuário com esse email ou alias
+        const emailExistente = await User.findOne({ email });
+        if (emailExistente) {
+            return res.render('register', { error: 'Este e-mail já está em uso.', nome, email, alias });
+        }
+
+        const aliasLimpo = alias.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+        if (aliasLimpo.length < 3) {
+            return res.render('register', { error: 'O Workspace Alias deve conter pelo menos 3 letras/números.', nome, email, alias });
+        }
+
+        const aliasExistente = await User.findOne({ mestra_alias: aliasLimpo });
+        if (aliasExistente) {
+            return res.render('register', { error: 'Este Workspace Alias já está em uso por outra empresa.', nome, email, alias });
+        }
+
+        const novoUsuario = new User({
+            nome,
+            email,
+            senha: password,
+            cargo: 'mestra',
+            mestra_alias: aliasLimpo,
+            ativo: true
+        });
+
+        await novoUsuario.save();
+
+        res.render('login', { success: 'Conta criada com sucesso! Faça login abaixo.' });
+
+    } catch (error) {
+        console.error('[AuthController.handleRegister] Erro:', error.message);
+        res.render('register', {
+            error: 'Ocorreu um erro ao criar a conta.',
+            nome: req.body.nome,
+            email: req.body.email,
+            alias: req.body.alias
+        });
+    }
+};
+
+/**
  * Processa a submissão do formulário de login.
  * Valida as credenciais, executa o método da UML e gera o token JWT stateless.
  */
@@ -31,7 +92,7 @@ const handleLogin = async (req, res) => {
         }
 
         // 1. Procura o utilizador na base de dados pelo e-mail
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email, deletado: { $ne: true } });
         if (!user) {
             return res.render('login', { error: 'Credenciais inválidas.', email });
         }
@@ -76,11 +137,13 @@ const handleLogout = (req, res) => {
     res.clearCookie('auth_token');
 
     // 2. Redireciona imediatamente para a página de login inicial
-    res.redirect('/login');
+    res.redirect('/auth/login');
 };
 
 module.exports = {
     renderLoginPage,
     handleLogin,
-    handleLogout
+    handleLogout,
+    renderRegisterPage,
+    handleRegister
 };

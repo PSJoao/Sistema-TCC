@@ -1,6 +1,7 @@
 // controllers/TemplateController.js
 const Template = require('../models/Template');
 const TemplateGroup = require('../models/TemplateGroup');
+const User = require('../models/User');
 const templateService = require('../services/TemplateService');
 const mammoth = require('mammoth');
 
@@ -9,18 +10,48 @@ const mammoth = require('mammoth');
  */
 const renderDashboard = async (req, res) => {
     try {
-        // Busca todos os grupos do usuário
-        const grupos = await TemplateGroup.find({ id_usuario: req.user._id }).sort({ data_criacao: -1 });
+        const workspaceId = req.user.cargo === 'mestra' ? req.user._id : req.user.id_mestra;
+
+        // Limpar rascunhos abandonados do próprio usuário
+        const limiteRascunho = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const rascunhosAntigos = await TemplateGroup.find({
+            id_usuario: req.user._id,
+            rascunho: true,
+            data_criacao: { $lt: limiteRascunho }
+        });
+        for (const rascunho of rascunhosAntigos) {
+            await Template.deleteMany({ id_grupo: rascunho._id });
+            await TemplateGroup.deleteOne({ _id: rascunho._id });
+        }
+
+        // Busca de grupos
+        let query = { id_mestra: workspaceId, rascunho: { $ne: true }, deletado: { $ne: true } };
+        
+        // Se for funcionário, restringe apenas aos templates que ele tem permissão
+        if (req.user.cargo === 'funcionario') {
+            query['permissoes.id_usuario'] = req.user._id;
+        }
+
+        const grupos = await TemplateGroup.find(query).sort({ data_criacao: -1 });
 
         // Para cada grupo, busca os templates associados
         const gruposFormatados = [];
         for (const grupo of grupos) {
-            const templates = await Template.find({ id_grupo: grupo._id }).select('titulo campos data_criacao');
+            const templates = await Template.find({ id_grupo: grupo._id, deletado: { $ne: true } }).select('titulo campos data_criacao');
+            
+            let podeEditar = true;
+            if (req.user.cargo === 'funcionario') {
+                const perm = grupo.permissoes.find(p => p.id_usuario.toString() === req.user._id.toString());
+                podeEditar = perm ? perm.pode_editar : false;
+            }
+
             gruposFormatados.push({
                 _id: grupo._id,
                 nome: grupo.nome,
                 dataCriacao: new Date(grupo.data_criacao).toLocaleDateString('pt-BR'),
                 quantidadeDocumentos: templates.length,
+                podeEditar: podeEditar,
+                permissoes: grupo.permissoes, // Repassa as permissões atuais
                 documentos: templates.map(t => ({
                     _id: t._id,
                     titulo: t.titulo
@@ -28,7 +59,16 @@ const renderDashboard = async (req, res) => {
             });
         }
 
-        res.render('dashboard', { grupos: gruposFormatados });
+        // Buscar lista de funcionários do workspace (apenas para Admin/Mestra poder gerenciar permissões)
+        let funcionarios = [];
+        if (req.user.cargo !== 'funcionario') {
+            funcionarios = await User.find({ id_mestra: workspaceId, cargo: 'funcionario', deletado: { $ne: true } }).select('_id nome email');
+        }
+
+        res.render('dashboard', { 
+            grupos: gruposFormatados, 
+            funcionarios: funcionarios.map(f => f.toObject()) 
+        });
     } catch (error) {
         console.error('[TemplateController.renderDashboard] Erro:', error.message);
         res.render('dashboard', {
@@ -46,7 +86,7 @@ const renderUploadPage = (req, res) => {
 };
 
 /**
- * Processa o upload de um lote de templates, cria o grupo e redireciona para o formulário editável.
+ * Processa o upload de um lote de templates, cria o grupo e redireciona para a tela de edição.
  */
 const handleUpload = async (req, res) => {
     try {
@@ -62,16 +102,26 @@ const handleUpload = async (req, res) => {
         // Processar os arquivos e extrair campos por documento
         const { fields, templatesData } = await templateService.processarLoteTemplates(req.files);
 
-        // Criar o grupo
+        const workspaceId = req.user.cargo === 'mestra' ? req.user._id : req.user.id_mestra;
+
+        // Criar o grupo como RASCUNHO (não aparece no dashboard até clicar Finalizar)
         const novoGrupo = new TemplateGroup({
             nome: nomeGrupo.trim(),
-            id_usuario: req.user._id
+            id_usuario: req.user._id,
+            id_mestra: workspaceId,
+            rascunho: true
         });
         await novoGrupo.save();
 
-        // Criar cada template associado ao grupo
-        const templatesSalvos = [];
+        // Criar cada template associado ao grupo (com deduplicação por título no mesmo lote)
+        const titulosAdicionados = new Set();
         for (const tData of templatesData) {
+            // Validação anti-duplicata: pular se já adicionamos um doc com o mesmo título neste lote
+            if (titulosAdicionados.has(tData.titulo)) {
+                continue;
+            }
+            titulosAdicionados.add(tData.titulo);
+
             // Gerar labels e placeholders padrão
             const labelsDefault = {};
             const placeholdersDefault = {};
@@ -91,19 +141,10 @@ const handleUpload = async (req, res) => {
             });
 
             await novoTemplate.save();
-            templatesSalvos.push(novoTemplate);
         }
 
-        // Montar dados unificados para o formulário com indicadores de pertencimento
-        const camposComIndicadores = montarCamposComIndicadores(templatesSalvos);
-
-        res.render('form', {
-            fields: camposComIndicadores,
-            templatesSelecionados: templatesSalvos.map(t => ({ _id: t._id, titulo: t.titulo })),
-            grupoId: novoGrupo._id,
-            nomeGrupo: novoGrupo.nome,
-            editavel: true // Na criação, o formulário é editável
-        });
+        // Redirecionar para a tela de edição com flag de novo template
+        res.redirect(`/templates/editar/${novoGrupo._id}?novo=1`);
 
     } catch (error) {
         console.error('[TemplateController.handleUpload] Erro crítico:', error.message);
@@ -116,17 +157,19 @@ const handleUpload = async (req, res) => {
 /**
  * Renderiza a tela de edição de um grupo de templates.
  * GET /templates/editar/:id
+ * Query param ?novo=1 indica que é uma criação recém-feita
  */
 const renderEditarTemplate = async (req, res) => {
     try {
         const { id } = req.params;
+        const novoCriado = req.query.novo === '1';
 
-        const grupo = await TemplateGroup.findOne({ _id: id, id_usuario: req.user._id });
+        const grupo = await getGrupoAutorizado(req, id, true); // true = requer permissao de edicao
         if (!grupo) {
             return res.redirect('/dashboard');
         }
 
-        const templates = await Template.find({ id_grupo: grupo._id });
+        const templates = await Template.find({ id_grupo: grupo._id, deletado: { $ne: true } });
 
         // Montar campos com indicadores
         const camposComIndicadores = montarCamposComIndicadores(templates);
@@ -141,7 +184,8 @@ const renderEditarTemplate = async (req, res) => {
                 titulo: t.titulo,
                 campos: t.campos
             })),
-            camposComIndicadores: camposComIndicadores
+            camposComIndicadores: camposComIndicadores,
+            novoCriado: novoCriado
         });
 
     } catch (error) {
@@ -157,21 +201,40 @@ const renderEditarTemplate = async (req, res) => {
 const handleEditarTemplate = async (req, res) => {
     try {
         const { id } = req.params;
-        const { nomeGrupo, labels, placeholders } = req.body;
+        const { nomeGrupo, labels, placeholders, docsParaRemover } = req.body;
 
-        const grupo = await TemplateGroup.findOne({ _id: id, id_usuario: req.user._id });
+        const grupo = await getGrupoAutorizado(req, id, true);
         if (!grupo) {
             return res.redirect('/dashboard');
+        }
+
+        // Processar remoções de documentos pendentes
+        if (docsParaRemover) {
+            const idsParaRemover = Array.isArray(docsParaRemover) ? docsParaRemover : [docsParaRemover];
+            for (const docId of idsParaRemover) {
+                await Template.updateOne({ _id: docId, id_grupo: id }, { deletado: true });
+            }
+
+            // Verificar se restou algum template no grupo
+            const restantes = await Template.countDocuments({ id_grupo: id, deletado: { $ne: true } });
+            if (restantes === 0) {
+                // Se não sobrou nenhum documento, excluir o grupo inteiro
+                await TemplateGroup.updateOne({ _id: id }, { deletado: true });
+                return res.redirect('/dashboard');
+            }
         }
 
         // Atualizar nome do grupo
         if (nomeGrupo && nomeGrupo.trim()) {
             grupo.nome = nomeGrupo.trim();
-            await grupo.save();
         }
 
+        // Marcar como finalizado (não é mais rascunho)
+        grupo.rascunho = false;
+        await grupo.save();
+
         // Atualizar labels e placeholders de cada template
-        const templates = await Template.find({ id_grupo: grupo._id });
+        const templates = await Template.find({ id_grupo: grupo._id, deletado: { $ne: true } });
         for (const template of templates) {
             let atualizado = false;
 
@@ -213,14 +276,14 @@ const handleEditarTemplate = async (req, res) => {
 };
 
 /**
- * Adiciona um novo documento a um grupo existente.
+ * Adiciona um novo documento a um grupo existente (redirecionamento tradicional).
  * POST /templates/:groupId/adicionar-documento
  */
 const adicionarDocumento = async (req, res) => {
     try {
         const { groupId } = req.params;
 
-        const grupo = await TemplateGroup.findOne({ _id: groupId, id_usuario: req.user._id });
+        const grupo = await getGrupoAutorizado(req, groupId, true);
         if (!grupo) {
             return res.redirect('/dashboard');
         }
@@ -231,7 +294,17 @@ const adicionarDocumento = async (req, res) => {
 
         const { templatesData } = await templateService.processarLoteTemplates(req.files);
 
+        // Buscar títulos existentes no grupo para evitar duplicatas
+        const titulosExistentes = await Template.find({ id_grupo: grupo._id, deletado: { $ne: true } }).select('titulo');
+        const setTitulos = new Set(titulosExistentes.map(t => t.titulo));
+
         for (const tData of templatesData) {
+            // Validação anti-duplicata: pular se já existe um doc com o mesmo título no grupo
+            if (setTitulos.has(tData.titulo)) {
+                continue;
+            }
+            setTitulos.add(tData.titulo);
+
             const labelsDefault = {};
             const placeholdersDefault = {};
             for (const campo of tData.campos) {
@@ -261,31 +334,158 @@ const adicionarDocumento = async (req, res) => {
 };
 
 /**
- * Remove um documento individual de um grupo.
+ * Adiciona documentos via AJAX e retorna JSON com os novos documentos e campos atualizados.
+ * POST /templates/:groupId/adicionar-documento-ajax
+ */
+const adicionarDocumentoAjax = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+
+        const grupo = await getGrupoAutorizado(req, groupId, true);
+        if (!grupo) {
+            return res.status(404).json({ error: 'Grupo não encontrado ou sem permissão.' });
+        }
+
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: 'Nenhum ficheiro enviado.' });
+        }
+
+        const { templatesData } = await templateService.processarLoteTemplates(req.files);
+        const novosTemplates = [];
+        const duplicadosPulados = [];
+
+        // Buscar títulos existentes no grupo para evitar duplicatas
+        const titulosExistentes = await Template.find({ id_grupo: grupo._id, deletado: { $ne: true } }).select('titulo');
+        const setTitulos = new Set(titulosExistentes.map(t => t.titulo));
+
+        for (const tData of templatesData) {
+            // Validação anti-duplicata: se já existe um doc com o mesmo título, pular
+            if (setTitulos.has(tData.titulo)) {
+                duplicadosPulados.push(tData.titulo);
+                continue;
+            }
+            setTitulos.add(tData.titulo);
+
+            const labelsDefault = {};
+            const placeholdersDefault = {};
+            for (const campo of tData.campos) {
+                labelsDefault[campo] = campo.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                placeholdersDefault[campo] = `Introduza o valor para ${labelsDefault[campo]}`;
+            }
+
+            const novoTemplate = new Template({
+                titulo: tData.titulo,
+                arquivo_original: tData.arquivo_original,
+                id_usuario: req.user._id,
+                id_grupo: grupo._id,
+                campos: tData.campos,
+                labels: labelsDefault,
+                placeholders: placeholdersDefault
+            });
+
+            await novoTemplate.save();
+            novosTemplates.push({
+                _id: novoTemplate._id,
+                titulo: novoTemplate.titulo,
+                campos: novoTemplate.campos
+            });
+        }
+
+        // Recalcular todos os campos com indicadores
+        const todosTemplates = await Template.find({ id_grupo: grupo._id, deletado: { $ne: true } });
+        const camposComIndicadores = montarCamposComIndicadores(todosTemplates);
+
+        res.json({
+            success: true,
+            novosTemplates: novosTemplates,
+            duplicadosPulados: duplicadosPulados,
+            todosTemplates: todosTemplates.map(t => ({
+                _id: t._id,
+                titulo: t.titulo,
+                campos: t.campos
+            })),
+            camposComIndicadores: camposComIndicadores
+        });
+
+    } catch (error) {
+        console.error('[TemplateController.adicionarDocumentoAjax] Erro:', error.message);
+        res.status(500).json({ error: error.message || 'Erro ao processar o documento.' });
+    }
+};
+
+/**
+ * Remove um documento via AJAX e retorna JSON com os campos atualizados.
+ * POST /templates/:groupId/remover-documento-ajax/:docId
+ */
+const removerDocumentoAjax = async (req, res) => {
+    try {
+        const { groupId, docId } = req.params;
+
+        const grupo = await getGrupoAutorizado(req, groupId, true);
+        if (!grupo) {
+            return res.status(404).json({ error: 'Grupo não encontrado ou sem permissão.' });
+        }
+
+        // Verificar quantos templates restam
+        const totalTemplates = await Template.countDocuments({ id_grupo: groupId, deletado: { $ne: true } });
+
+        if (totalTemplates <= 1) {
+            // Se é o último, excluir grupo inteiro
+            await Template.updateOne({ _id: docId, id_grupo: groupId }, { deletado: true });
+            await TemplateGroup.updateOne({ _id: groupId }, { deletado: true });
+            return res.json({ success: true, grupoExcluido: true });
+        }
+
+        // Remover apenas o documento
+        await Template.updateOne({ _id: docId, id_grupo: groupId }, { deletado: true });
+
+        // Recalcular campos
+        const todosTemplates = await Template.find({ id_grupo: groupId, deletado: { $ne: true } });
+        const camposComIndicadores = montarCamposComIndicadores(todosTemplates);
+
+        res.json({
+            success: true,
+            grupoExcluido: false,
+            todosTemplates: todosTemplates.map(t => ({
+                _id: t._id,
+                titulo: t.titulo,
+                campos: t.campos
+            })),
+            camposComIndicadores: camposComIndicadores
+        });
+
+    } catch (error) {
+        console.error('[TemplateController.removerDocumentoAjax] Erro:', error.message);
+        res.status(500).json({ error: 'Erro ao remover o documento.' });
+    }
+};
+
+/**
+ * Remove um documento individual de um grupo (rota tradicional com redirect).
  * POST /templates/:groupId/remover-documento/:docId
  */
 const removerDocumento = async (req, res) => {
     try {
         const { groupId, docId } = req.params;
 
-        // Verifica que o grupo pertence ao usuário
-        const grupo = await TemplateGroup.findOne({ _id: groupId, id_usuario: req.user._id });
+        // Verifica permissao de edicao
+        const grupo = await getGrupoAutorizado(req, groupId, true);
         if (!grupo) {
             return res.redirect('/dashboard');
         }
 
         // Verifica quantos templates restam no grupo
-        const totalTemplates = await Template.countDocuments({ id_grupo: groupId });
+        const totalTemplates = await Template.countDocuments({ id_grupo: groupId, deletado: { $ne: true } });
 
         if (totalTemplates <= 1) {
             // Se é o último documento, excluir o grupo inteiro
-            await Template.deleteOne({ _id: docId, id_grupo: groupId });
-            await TemplateGroup.deleteOne({ _id: groupId });
+            await Template.updateOne({ _id: docId, id_grupo: groupId }, { deletado: true });
+            await TemplateGroup.updateOne({ _id: groupId }, { deletado: true });
             return res.redirect('/dashboard');
         }
 
         // Remover apenas o documento
-        await Template.deleteOne({ _id: docId, id_grupo: groupId });
+        await Template.updateOne({ _id: docId, id_grupo: groupId }, { deletado: true });
         res.redirect(`/templates/editar/${groupId}`);
 
     } catch (error) {
@@ -302,11 +502,22 @@ const excluirTemplate = async (req, res) => {
     try {
         const { id } = req.params;
 
+        // Excluir requer nivel admin/mestra
+        if (req.user.cargo === 'funcionario') {
+            return res.redirect('/dashboard');
+        }
+
+        const workspaceId = req.user.cargo === 'mestra' ? req.user._id : req.user.id_mestra;
+
+        // Verifica se o grupo pertence a este workspace
+        const grupo = await TemplateGroup.findOne({ _id: id, id_mestra: workspaceId, deletado: { $ne: true } });
+        if (!grupo) return res.redirect('/dashboard');
+
         // Excluir todos os templates do grupo
-        await Template.deleteMany({ id_grupo: id, id_usuario: req.user._id });
+        await Template.updateMany({ id_grupo: id }, { deletado: true });
 
         // Excluir o grupo
-        await TemplateGroup.deleteOne({ _id: id, id_usuario: req.user._id });
+        await TemplateGroup.updateOne({ _id: id }, { deletado: true });
 
         res.redirect('/dashboard');
     } catch (error) {
@@ -339,6 +550,93 @@ function montarCamposComIndicadores(templates) {
     return Object.values(mapaGlobal);
 }
 
+/**
+ * Recalcula os campos com indicadores, excluindo documentos marcados para remoção no client-side.
+ * POST /templates/:groupId/campos-atualizados
+ * Body: { docsRemovidos: [docId1, docId2, ...] }
+ */
+const camposAtualizados = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const { docsRemovidos } = req.body;
+
+        const grupo = await getGrupoAutorizado(req, groupId, true);
+        if (!grupo) {
+            return res.status(404).json({ error: 'Grupo não encontrado ou sem permissão.' });
+        }
+
+        // Buscar todos os templates, excluindo os marcados para remoção
+        let filtro = { id_grupo: groupId, deletado: { $ne: true } };
+        if (docsRemovidos && docsRemovidos.length > 0) {
+            filtro._id = { $nin: docsRemovidos };
+        }
+
+        const templates = await Template.find(filtro);
+        const camposComIndicadores = montarCamposComIndicadores(templates);
+
+        res.json({
+            success: true,
+            camposComIndicadores: camposComIndicadores
+        });
+
+    } catch (error) {
+        console.error('[TemplateController.camposAtualizados] Erro:', error.message);
+        res.status(500).json({ error: 'Erro ao recalcular campos.' });
+    }
+};
+
+/**
+ * Helper para buscar o grupo garantindo que o usuário tem permissão para acessá-lo.
+ * @param {Object} req - Objeto de requisição express
+ * requireEdicao = true -> O usuário deve poder editar.
+ */
+async function getGrupoAutorizado(req, id, requireEdicao = false) {
+    const workspaceId = req.user.cargo === 'mestra' ? req.user._id : req.user.id_mestra;
+    
+    let query = { _id: id, id_mestra: workspaceId, deletado: { $ne: true } };
+    
+    // Se for admin ou mestra, eles tem acesso irrestrito dentro do workspace, não precisa filtrar permissão individual
+    if (req.user.cargo === 'funcionario') {
+        if (requireEdicao) {
+            query['permissoes'] = { $elemMatch: { id_usuario: req.user._id, pode_editar: true } };
+        } else {
+            query['permissoes.id_usuario'] = req.user._id;
+        }
+    }
+    
+    return await TemplateGroup.findOne(query);
+}
+
+/**
+ * Atualiza as permissões de um template específico para funcionários.
+ * Apenas acessível por Admins/Mestra.
+ */
+const atualizarPermissoes = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { permissoes } = req.body; // array de { id_usuario, pode_editar }
+
+        if (req.user.cargo === 'funcionario') {
+            return res.status(403).json({ error: 'Acesso negado.' });
+        }
+
+        const workspaceId = req.user.cargo === 'mestra' ? req.user._id : req.user.id_mestra;
+
+        const grupo = await TemplateGroup.findOne({ _id: id, id_mestra: workspaceId });
+        if (!grupo) {
+            return res.status(404).json({ error: 'Grupo não encontrado.' });
+        }
+
+        grupo.permissoes = permissoes || [];
+        await grupo.save();
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[TemplateController.atualizarPermissoes] Erro:', error.message);
+        res.status(500).json({ error: 'Erro ao salvar permissões.' });
+    }
+};
+
 module.exports = {
     renderDashboard,
     renderUploadPage,
@@ -346,6 +644,10 @@ module.exports = {
     renderEditarTemplate,
     handleEditarTemplate,
     adicionarDocumento,
+    adicionarDocumentoAjax,
     removerDocumento,
-    excluirTemplate
+    removerDocumentoAjax,
+    camposAtualizados,
+    excluirTemplate,
+    atualizarPermissoes
 };

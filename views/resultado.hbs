@@ -1,34 +1,27 @@
 <div style="max-width: 740px; margin: 0 auto;">
     <div class="resultado-header">
-        <span class="resultado-success-icon">✅</span>
-        <h1 class="resultado-title">Documentos Gerados!</h1>
-        <p class="resultado-subtitle">Os seus documentos foram processados com sucesso. As variáveis foram injetadas e
-            os cálculos matemáticos foram realizados diretamente na estrutura nativa do ficheiro Word.</p>
+        <span class="resultado-success-icon"><i class="ph-fill ph-check-circle" style="color: var(--color-success);"></i></span>
+        <h1 class="resultado-title">Documentos Gerados Com Sucesso!</h1>
     </div>
 
-    {{#each documentos}}
-    <div class="download-card" style="animation-delay: {{@index}}00ms;">
-        <div class="download-card-header">
-            <span class="download-card-title">
-                📄 {{this.titulo}}.docx
+    <div class="card card-static download-card"
+        style="text-align: center; padding: var(--spacing-2xl) var(--spacing-lg);">
+        <div class="download-card-header" style="justify-content: center; margin-bottom: var(--spacing-md);">
+            <span class="download-card-title" style="font-size: 1.5rem;">
+                Pacote de Documentos (.zip)
             </span>
-            <span class="download-card-badge">Word .docx</span>
         </div>
-        <div class="download-card-body">
-            <span class="download-card-icon">📥</span>
-            <p class="download-card-text">
-                Documento gerado preservando todas as fontes, margens e estilos originais.
+        <div class="download-card-body"
+            style="display: flex; flex-direction: column; align-items: center; gap: var(--spacing-lg);">
+            <p class="download-card-text" style="font-size: 1.1rem;">
+                Os seus <strong>{{documentos.length}}</strong> documentos estão prontos e foram compactados num único
+                ficheiro ZIP para facilitar o download.
             </p>
-            <a href="{{this.arquivoUrl}}" class="btn btn-primary" download>
-                ⬇ Descarregar Documento
+            <a href="{{zipUrl}}" class="btn btn-primary" style="font-size: 1.1rem; padding: 14px 28px;" download>
+                <i class="ph ph-download-simple"></i> Baixar Todos os Documentos
             </a>
-        </div>
-    </div>
-    {{/each}}
 
-    <div style="text-align: center; margin-top: var(--spacing-xl);">
-        <a href="/dashboard" class="btn btn-secondary">
-            ← Voltar ao Dashboard
-        </a>
+            <a href="/dashboard" class="btn btn-secondary mt-3">Voltar ao Início</a>
+        </div>
     </div>
 </div>

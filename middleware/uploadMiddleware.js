@@ -4,6 +4,9 @@ const path = require('path');
 const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
+    // Corrigir codificação do nome do ficheiro (de latin1 para utf8) para preservar acentos, Ç, ~, etc.
+    file.originalname = Buffer.from(file.originalname, 'latin1').toString('utf8');
+
     // Agora aceitamos Word (.docx) e Texto (.txt)
     const allowedExtensions = /\.(docx|txt)$/i;
 

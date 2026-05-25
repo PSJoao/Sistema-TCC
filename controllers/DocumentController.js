@@ -13,15 +13,24 @@ const renderSingleTemplateForm = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Procura o grupo na base de dados e garante que pertence ao utilizador logado
-        const grupo = await TemplateGroup.findOne({ _id: id, id_usuario: req.user._id });
+        const workspaceId = req.user.cargo === 'mestra' ? req.user._id : req.user.id_mestra;
+
+        // Procura o grupo na base de dados e garante que pertence ao workspace
+        let query = { _id: id, id_mestra: workspaceId, deletado: { $ne: true } };
+        
+        // Se for funcionário, deve ter acesso explícito
+        if (req.user.cargo === 'funcionario') {
+            query['permissoes.id_usuario'] = req.user._id;
+        }
+
+        const grupo = await TemplateGroup.findOne(query);
 
         if (!grupo) {
             return res.redirect('/dashboard');
         }
 
         // Busca todos os templates do grupo
-        const templates = await Template.find({ id_grupo: grupo._id });
+        const templates = await Template.find({ id_grupo: grupo._id, deletado: { $ne: true } });
 
         if (!templates || templates.length === 0) {
             return res.redirect('/dashboard');
@@ -35,8 +44,7 @@ const renderSingleTemplateForm = async (req, res) => {
             fields: camposComIndicadores,
             templatesSelecionados: templates.map(t => ({ _id: t._id, titulo: t.titulo })),
             grupoId: grupo._id,
-            nomeGrupo: grupo.nome,
-            editavel: false // A partir do dashboard, NÃO é editável
+            nomeGrupo: grupo.nome
         });
 
     } catch (error) {
@@ -51,7 +59,7 @@ const renderSingleTemplateForm = async (req, res) => {
  */
 const handleGerarDocumentos = async (req, res) => {
     try {
-        const { templateIds, valores, labels, placeholders, grupoId, editavel } = req.body;
+        const { templateIds, valores, grupoId } = req.body;
 
         if (!templateIds || templateIds.length === 0) {
             return res.render('form', {
@@ -61,50 +69,31 @@ const handleGerarDocumentos = async (req, res) => {
             });
         }
 
-        // Se veio do modo editável (criação), salvar labels e placeholders customizados
-        if (editavel === 'true' && grupoId) {
-            const templates = await Template.find({ id_grupo: grupoId });
-            for (const template of templates) {
-                let atualizado = false;
-
-                if (labels) {
-                    const novosLabels = { ...template.labels };
-                    for (const campo of template.campos) {
-                        if (labels[campo] !== undefined && labels[campo].trim()) {
-                            novosLabels[campo] = labels[campo].trim();
-                        }
-                    }
-                    template.labels = novosLabels;
-                    atualizado = true;
-                }
-
-                if (placeholders) {
-                    const novosPlaceholders = { ...template.placeholders };
-                    for (const campo of template.campos) {
-                        if (placeholders[campo] !== undefined) {
-                            novosPlaceholders[campo] = placeholders[campo].trim();
-                        }
-                    }
-                    template.placeholders = novosPlaceholders;
-                    atualizado = true;
-                }
-
-                if (atualizado) {
-                    template.markModified('labels');
-                    template.markModified('placeholders');
-                    await template.save();
-                }
-            }
-        }
-
         const dadosFormulario = valores || {};
 
-        // Aciona o DocumentService para compilar os documentos Word e guardar no disco
-        const documentosGerados = await documentService.gerarDocumentosEmMassa(templateIds, dadosFormulario, req.user._id);
+        // Validar se o usuário tem permissão para este grupoId
+        const workspaceId = req.user.cargo === 'mestra' ? req.user._id : req.user.id_mestra;
+        let query = { _id: grupoId, id_mestra: workspaceId, deletado: { $ne: true } };
+        if (req.user.cargo === 'funcionario') {
+            query['permissoes.id_usuario'] = req.user._id;
+        }
 
-        // Encaminha o array de documentos gerados (.docx) para a página de download bem-sucedido
+        const grupo = await TemplateGroup.findOne(query);
+        if (!grupo) {
+             return res.render('form', {
+                error: 'Acesso negado ou template inexistente.',
+                fields: [],
+                templatesSelecionados: []
+            });
+        }
+
+        // Aciona o DocumentService para compilar os documentos Word e guardar no disco
+        const resultadoGeral = await documentService.gerarDocumentosEmMassa(templateIds, dadosFormulario, req.user);
+
+        // Encaminha o pacote gerado (.zip) para a página de download bem-sucedido
         res.render('resultado', {
-            documentos: documentosGerados
+            documentos: resultadoGeral.documentos,
+            zipUrl: resultadoGeral.zipUrl
         });
 
     } catch (error) {

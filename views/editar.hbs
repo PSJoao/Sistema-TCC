@@ -1,18 +1,23 @@
-<div style="max-width: 800px; margin: 0 auto;">
+<div id="editor-container" data-grupo-id="{{grupo._id}}" data-novo-criado="{{#if novoCriado}}true{{else}}false{{/if}}" style="max-width: 800px; margin: 0 auto;">
     <div class="dashboard-header" style="margin-bottom: var(--spacing-lg);">
         <div>
-            <h1 class="page-title">Editar Template</h1>
-            <p class="page-subtitle" style="margin-bottom: 0;">Personalize o nome, labels, placeholders e gerencie os
-                documentos do template.</p>
+            <h1 class="page-title">{{#if novoCriado}}Configurar Novo Template{{else}}Editar Template{{/if}}</h1>
+            <p class="page-subtitle" style="margin-bottom: 0;">
+                {{#if novoCriado}}
+                Configure o nome, labels, placeholders e gerencie os documentos antes de finalizar.
+                {{else}}
+                Personalize o nome, labels, placeholders e gerencie os documentos do template.
+                {{/if}}
+            </p>
         </div>
-        <a href="/dashboard" class="btn btn-secondary">← Voltar</a>
+        <a href="/dashboard" class="btn btn-secondary" id="btnVoltar">← Voltar</a>
     </div>
 
-    <form action="/templates/editar/{{grupo._id}}" method="POST">
+    <form action="/templates/editar/{{grupo._id}}" method="POST" id="editForm">
 
         <!-- Seção: Nome do Grupo -->
         <div class="card card-static editor-section" style="margin-bottom: var(--spacing-xl);">
-            <div class="editor-section-title">📋 Nome do Template</div>
+            <div class="editor-section-title"><i class="ph ph-clipboard-text"></i> Nome do Template</div>
             <div class="form-group" style="margin-bottom: 0;">
                 <input type="text" name="nomeGrupo" value="{{grupo.nome}}" class="form-control"
                     placeholder="Nome do template" required>
@@ -21,84 +26,105 @@
 
         <!-- Seção: Documentos -->
         <div class="card card-static editor-section" style="margin-bottom: var(--spacing-xl);">
-            <div class="editor-section-title">📁 Documentos do Template</div>
+            <div class="editor-section-title"><i class="ph ph-folder"></i> Documentos do Template</div>
 
-            <ul class="editor-doc-list">
+            <ul class="editor-doc-list" id="docList">
                 {{#each templates}}
-                <li class="editor-doc-item">
+                <li class="editor-doc-item" data-doc-id="{{this._id}}">
                     <div class="editor-doc-info">
-                        <span class="editor-doc-icon">📄</span>
+                        <span class="editor-doc-icon"><i class="ph ph-file-text"></i></span>
                         <div>
                             <div class="editor-doc-name">{{this.titulo}}</div>
                             <div class="editor-doc-campos">{{this.campos.length}} campo(s) extraído(s)</div>
                         </div>
                     </div>
-                    <form action="/templates/{{../grupo._id}}/remover-documento/{{this._id}}" method="POST"
-                        style="display: inline;"
-                        onsubmit="return confirm('Remover o documento \'{{this.titulo}}\' deste template?');">
-                        <button type="submit" class="btn btn-danger btn-sm">Remover</button>
-                    </form>
+                    <button type="button" class="btn btn-danger btn-sm btn-remover-doc"
+                        data-doc-id="{{this._id}}" data-doc-titulo="{{this.titulo}}">
+                        Remover
+                    </button>
                 </li>
                 {{/each}}
             </ul>
 
+            <!-- Container de hidden inputs para documentos a remover (enviados no submit) -->
+            <div id="docsParaRemoverContainer"></div>
+
             <!-- Adicionar novo documento -->
             <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--color-border);">
-                <form action="/templates/{{grupo._id}}/adicionar-documento" method="POST"
-                    enctype="multipart/form-data" style="display: flex; gap: var(--spacing-md); align-items: flex-end; flex-wrap: wrap;">
+                <div style="display: flex; gap: var(--spacing-md); align-items: flex-end; flex-wrap: wrap;">
                     <div class="form-group" style="flex: 1; margin-bottom: 0; min-width: 200px;">
                         <label class="form-label">Adicionar Documento</label>
-                        <input type="file" name="templates" class="form-control" accept=".docx,.txt" required
+                        <input type="file" id="addDocInput" class="form-control" accept=".docx,.txt"
                             multiple>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-sm" style="height: fit-content;">
+                    <button type="button" class="btn btn-primary btn-sm" id="btnAdicionarDoc" style="height: fit-content;" disabled>
                         + Adicionar
                     </button>
-                </form>
+                </div>
+                <div id="addDocStatus" style="margin-top: var(--spacing-sm); display: none;">
+                    <span class="editor-doc-campos" style="color: var(--color-primary);">
+                        <i class="ph ph-hourglass"></i> Processando documento(s)...
+                    </span>
+                </div>
             </div>
         </div>
 
         <!-- Seção: Campos / Labels / Placeholders -->
         <div class="card card-static editor-section" style="margin-bottom: var(--spacing-xl);">
-            <div class="editor-section-title">🏷️ Labels e Placeholders dos Campos</div>
+            <div class="editor-section-title"><i class="ph ph-tag"></i> Labels e Placeholders dos Campos</div>
             <p style="color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: var(--spacing-lg);">
                 Edite os labels (rótulos) e placeholders (textos de ajuda) que aparecerão no formulário de
                 preenchimento.
             </p>
 
-            {{#each camposComIndicadores}}
-            <div class="field-editor-row">
-                <div class="field-editor-header">
-                    <span class="field-editor-name">{{this.campo}}</span>
-                    <div class="field-badges">
-                        {{#each this.documentos}}
-                        <span class="badge badge-doc">📄 {{this}}</span>
-                        {{/each}}
+            <div id="camposContainer">
+                {{#each camposComIndicadores}}
+                <div class="field-editor-row" data-campo="{{this.campo}}">
+                    <div class="field-editor-header">
+                        <span class="field-editor-name">{{this.campo}}</span>
+                        <div class="field-badges">
+                            <button type="button" class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 0.75rem;" 
+                                onclick='ModalSystem.showList("Referências: {{this.campo}}", {{{json this.documentos}}})'>
+                                Ver Referências
+                            </button>
+                        </div>
+                    </div>
+                    <div class="field-editor-inputs">
+                        <div class="field-editor-input-group">
+                            <span class="field-editor-input-label">Label</span>
+                            <input type="text" name="labels[{{this.campo}}]" value="{{this.label}}"
+                                class="form-control" placeholder="Label do campo">
+                        </div>
+                        <div class="field-editor-input-group">
+                            <span class="field-editor-input-label">Placeholder</span>
+                            <input type="text" name="placeholders[{{this.campo}}]" value="{{this.placeholder}}"
+                                class="form-control" placeholder="Texto de ajuda">
+                        </div>
                     </div>
                 </div>
-                <div class="field-editor-inputs">
-                    <div class="field-editor-input-group">
-                        <span class="field-editor-input-label">Label</span>
-                        <input type="text" name="labels[{{this.campo}}]" value="{{this.label}}"
-                            class="form-control" placeholder="Label do campo">
-                    </div>
-                    <div class="field-editor-input-group">
-                        <span class="field-editor-input-label">Placeholder</span>
-                        <input type="text" name="placeholders[{{this.campo}}]" value="{{this.placeholder}}"
-                            class="form-control" placeholder="Texto de ajuda">
-                    </div>
+                {{/each}}
+
+                <div id="noCamposMessage" style="display: none; color: var(--color-text-muted); text-align: center; padding: var(--spacing-lg) 0;">
+                    Nenhum campo disponível. Adicione documentos ao template para ver os campos extraídos.
                 </div>
             </div>
-            {{/each}}
         </div>
 
         <!-- Ações -->
         <div class="form-actions">
-            <a href="/dashboard" class="btn btn-secondary" style="flex: 1;">Cancelar</a>
-            <button type="submit" class="btn btn-success" style="flex: 2;">
-                💾 Salvar Alterações
+            <a href="/dashboard" class="btn btn-secondary" style="flex: 1;" id="btnCancelar">Cancelar</a>
+            <button type="submit" class="btn btn-success" style="flex: 2;" id="btnSalvar">
+                {{#if novoCriado}}
+                <i class="ph ph-check"></i> Finalizar
+                {{else}}
+                <i class="ph ph-floppy-disk"></i> Salvar Alterações
+                {{/if}}
             </button>
         </div>
 
     </form>
 </div>
+
+</div>
+
+<script src="/scripts/editar.js"></script>

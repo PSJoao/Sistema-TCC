@@ -8,6 +8,13 @@ module.exports = {
     },
 
     /**
+     * Helper de Diferença (ne)
+     */
+    ne: function (v1, v2) {
+        return v1 !== v2;
+    },
+
+    /**
      * Motor Matemático (calc)
      * Resolve expressões matemáticas complexas injetando os valores do formulário.
      * * Como usar no documento Word/Template: 
@@ -35,8 +42,8 @@ module.exports = {
             // Executa a expressão matemática de forma segura isolando num construtor de Função
             const resultado = new Function('return ' + expressaoPreenchida)();
 
-            // Retorna o resultado. Se for decimal, formata para 2 casas (ideal para valores monetários)
-            return Number.isInteger(resultado) ? resultado : resultado.toFixed(2);
+            // Retorna o resultado. Se for decimal, formata para no máximo 5 casas
+            return Number.isInteger(resultado) ? resultado : parseFloat(resultado.toFixed(5));
 
         } catch (erro) {
             console.error(`[Helper Calc] Erro ao calcular a expressão "${expressao}":`, erro.message);

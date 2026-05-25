@@ -40,6 +40,10 @@ const TemplateSchema = new mongoose.Schema({
     data_criacao: {
         type: Date,
         default: Date.now
+    },
+    deletado: {
+        type: Boolean,
+        default: false
     }
 });
 

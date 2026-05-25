@@ -3,6 +3,13 @@
         <h2 class="login-title">Acessar Sistema</h2>
         <p class="login-subtitle">Plataforma de Automação de Documentos</p>
 
+        {{#if success}}
+        <div class="alert alert-success"
+            style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
+            {{success}}
+        </div>
+        {{/if}}
+
         {{#if error}}
         <div class="alert alert-error">
             {{error}}
@@ -11,9 +18,9 @@
 
         <form action="/auth/login" method="POST">
             <div class="form-group">
-                <label for="email" class="form-label">E-mail</label>
-                <input type="email" id="email" name="email" class="form-control" placeholder="seu@email.com" required
-                    autocomplete="email" value="{{email}}">
+                <label for="email" class="form-label">E-mail ou Usuário corporativo</label>
+                <input type="text" id="email" name="email" class="form-control"
+                    placeholder="ex: seu@email.com ou nome@empresa" required autocomplete="email" value="{{email}}">
             </div>
 
             <div class="form-group">
@@ -23,6 +30,13 @@
             </div>
 
             <button type="submit" class="btn btn-primary btn-block mt-3">Entrar</button>
+
+            <div style="text-align: center; margin-top: var(--spacing-lg);">
+                <span style="color: var(--color-text-muted);">Ainda não tem uma conta?</span>
+                <a href="/auth/register"
+                    style="color: var(--color-primary); text-decoration: none; font-weight: 500; margin-left: 4px;">Criar
+                    Workspace</a>
+            </div>
         </form>
     </div>
 </div>

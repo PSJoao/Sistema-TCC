@@ -1,61 +1,85 @@
-<div class="dashboard-header">
-    <div>
-        <h1 class="page-title">Meus Templates</h1>
-        <p class="page-subtitle" style="margin-bottom: 0;">Faça a gestão dos seus modelos de documentos dinâmicos.</p>
+<div id="dashboard-container" data-funcionarios="{{json funcionarios}}">
+    <div class="dashboard-header">
+        <div>
+            <h1 class="page-title">Meus Templates</h1>
+            <p class="page-subtitle" style="margin-bottom: 0;">Faça a gestão dos seus modelos de documentos dinâmicos.
+            </p>
+        </div>
+        {{#if (ne user.cargo 'funcionario')}}
+        <a href="/upload" class="btn btn-primary">
+            + Novo Template
+        </a>
+        {{/if}}
     </div>
-    <a href="/upload" class="btn btn-primary">
-        + Novo Template
-    </a>
-</div>
 
-<div class="grid-cards">
-    {{#if grupos.length}}
-    {{#each grupos}}
-    <div class="card">
-        <div class="card-header-area">
-            <h3 class="card-title">{{this.nome}}</h3>
-            <div class="card-meta">
-                <span class="card-meta-icon">📅</span>
-                <span>{{this.dataCriacao}}</span>
-                <span class="badge badge-count">{{this.quantidadeDocumentos}} doc(s)</span>
+    <div class="grid-cards">
+        {{#if grupos.length}}
+        {{#each grupos}}
+        <div class="card">
+            <div class="card-header-area">
+                <h3 class="card-title">{{this.nome}}</h3>
+                <div class="card-meta">
+                    <span class="card-meta-icon"><i class="ph ph-calendar-blank"></i></span>
+                    <span>{{this.dataCriacao}}</span>
+                    <span class="badge badge-count">{{this.quantidadeDocumentos}} doc(s)</span>
+                </div>
+            </div>
+
+            <div class="card-docs-preview" style="margin: var(--spacing-md) 0;">
+                <button type="button" class="btn btn-secondary btn-sm btn-block" data-nome="{{this.nome}}"
+                    data-docs="{{json this.documentos}}" onclick="abrirModalReferencias(this)">
+                    Ver Referências ({{this.quantidadeDocumentos}})
+                </button>
+
+                {{#if (ne ../user.cargo 'funcionario')}}
+                <button type="button" class="btn btn-sm btn-block mt-2"
+                    style="background: rgba(167, 139, 250, 0.1); color: #a78bfa; border: 1px solid rgba(167, 139, 250, 0.2);"
+                    data-permissoes="{{json this.permissoes}}"
+                    onclick="abrirModalPermissoes('{{this._id}}', '{{this.nome}}', this.getAttribute('data-permissoes'))">
+                    <i class="ph ph-shield-check" style="font-size: 1.1rem;"></i> Gerenciar Acessos
+                </button>
+                {{/if}}
+            </div>
+
+            <div class="card-actions">
+                <a href="/documentos/gerar/{{this._id}}" class="btn btn-primary btn-sm" style="flex: 1;">
+                    <i class="ph ph-play"></i> Gerar
+                </a>
+
+                {{#if this.podeEditar}}
+                <a href="/templates/editar/{{this._id}}" class="btn btn-secondary btn-sm" style="flex: 1;">
+                    <i class="ph ph-pencil-simple"></i> Editar
+                </a>
+
+                {{#if (ne ../user.cargo 'funcionario')}}
+                <form id="form-excluir-{{this._id}}" action="/templates/excluir/{{this._id}}" method="POST"
+                    style="flex: 1; display: contents;">
+                    <button type="button" class="btn btn-danger btn-sm" style="width: 100%;"
+                        onclick="confirmarExclusaoTemplate('{{this._id}}')">
+                        <i class="ph ph-trash"></i> Excluir
+                    </button>
+                </form>
+                {{/if}}
+                {{/if}}
             </div>
         </div>
+        {{/each}}
+        {{else}}
+        <div class="card card-static empty-state">
+            <div class="empty-state-icon"><i class="ph ph-file-text"></i></div>
+            <h3 class="empty-state-title">Nenhum template encontrado</h3>
+            <p class="empty-state-text">Ainda não fez o upload de nenhum modelo de documento para o sistema ou não
+                recebeu permissões.</p>
 
-        <ul class="card-docs-list">
-            {{#each this.documentos}}
-            <li class="card-doc-item">
-                <span class="card-doc-icon">📄</span>
-                <span>{{this.titulo}}</span>
-            </li>
-            {{/each}}
-        </ul>
-
-        <div class="card-actions">
-            <a href="/documentos/gerar/{{this._id}}" class="btn btn-primary btn-sm" style="flex: 1;">
-                ▶ Gerar
+            {{#if (ne user.cargo 'funcionario')}}
+            <a href="/upload" class="btn btn-primary">
+                Fazer o Primeiro Upload
             </a>
-
-            <a href="/templates/editar/{{this._id}}" class="btn btn-secondary btn-sm" style="flex: 1;">
-                ✏️ Editar
-            </a>
-
-            <form action="/templates/excluir/{{this._id}}" method="POST" style="flex: 1; display: contents;"
-                onsubmit="return confirm('Tem a certeza que deseja eliminar este template e todos os seus documentos?');">
-                <button type="submit" class="btn btn-danger btn-sm" style="width: 100%;">
-                    🗑 Excluir
-                </button>
-            </form>
+            {{/if}}
         </div>
+        {{/if}}
     </div>
-    {{/each}}
-    {{else}}
-    <div class="card card-static empty-state">
-        <div class="empty-state-icon">📄</div>
-        <h3 class="empty-state-title">Nenhum template encontrado</h3>
-        <p class="empty-state-text">Ainda não fez o upload de nenhum modelo de documento para o sistema.</p>
-        <a href="/upload" class="btn btn-primary">
-            Fazer o Primeiro Upload
-        </a>
-    </div>
-    {{/if}}
+
 </div>
+
+<script src="/scripts/dashboard.js"></script>

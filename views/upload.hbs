@@ -1,9 +1,9 @@
 <div style="max-width: 620px; margin: 0 auto;">
     <div class="dashboard-header" style="margin-bottom: var(--spacing-lg);">
         <div>
-            <h1 class="page-title">Geração em Lote</h1>
-            <p class="page-subtitle" style="margin-bottom: 0;">Faça o upload de até 100 templates simultâneos para
-                mapear e unificar os campos.</p>
+            <h1 class="page-title">Novo Template</h1>
+            <p class="page-subtitle" style="margin-bottom: 0;">Faça o upload dos documentos para criar um novo
+                template. Você poderá configurar labels e placeholders na próxima etapa.</p>
         </div>
     </div>
 
@@ -23,11 +23,11 @@
             </div>
 
             <div class="upload-area" id="dropArea">
-                <div class="upload-icon">📤</div>
+                <div class="upload-icon"><i class="ph ph-upload-simple"></i></div>
                 <h3 class="upload-title">Arraste e solte os arquivos aqui</h3>
                 <p class="upload-hint">ou clique para navegar pelos ficheiros</p>
                 <p class="upload-formats">Formatos aceites: .docx, .txt</p>
-                <input type="file" name="templates" id="fileInput" multiple required style="display: none;"
+                <input type="file" name="templates" id="fileInput" multiple style="display: none;"
                     accept=".docx,.txt">
             </div>
 
@@ -41,78 +41,11 @@
             <div style="display: flex; gap: var(--spacing-md);">
                 <a href="/dashboard" class="btn btn-secondary" style="flex: 1;">Voltar</a>
                 <button type="submit" class="btn btn-primary" id="submitBtn" style="flex: 2;" disabled>
-                    Processar Lote
+                    Criar Template
                 </button>
             </div>
         </form>
     </div>
 </div>
 
-<script>
-    const dropArea = document.getElementById('dropArea');
-    const fileInput = document.getElementById('fileInput');
-    const fileListContainer = document.getElementById('fileListContainer');
-    const fileList = document.getElementById('fileList');
-    const fileCount = document.getElementById('fileCount');
-    const submitBtn = document.getElementById('submitBtn');
-
-    // Despoleta o seletor de ficheiros ao clicar na área
-    dropArea.addEventListener('click', () => fileInput.click());
-
-    // Efeitos visuais ao arrastar ficheiros sobre a zona
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropArea.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            dropArea.classList.add('dragover');
-        }, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            dropArea.classList.remove('dragover');
-        }, false);
-    });
-
-    // Captura os ficheiros largados na zona
-    dropArea.addEventListener('drop', (e) => {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        fileInput.files = files;
-        updateFileList(files);
-    });
-
-    // Captura a seleção de ficheiros convencional
-    fileInput.addEventListener('change', (e) => {
-        updateFileList(e.target.files);
-    });
-
-    // Atualiza a interface e valida as regras de negócio de lote
-    function updateFileList(files) {
-        fileList.innerHTML = '';
-        const totalFiles = files.length;
-
-        if (totalFiles > 100) {
-            alert('Erro: O sistema aceita no máximo 100 templates por lote. Reduza a quantidade de ficheiros.');
-            fileInput.value = '';
-            fileListContainer.style.display = 'none';
-            submitBtn.disabled = true;
-            return;
-        }
-
-        if (totalFiles > 0) {
-            fileCount.textContent = totalFiles;
-            fileListContainer.style.display = 'block';
-            submitBtn.disabled = false;
-
-            Array.from(files).forEach(file => {
-                const li = document.createElement('li');
-                li.innerHTML = '<span class="card-doc-icon">📄</span> ' + file.name;
-                fileList.appendChild(li);
-            });
-        } else {
-            fileListContainer.style.display = 'none';
-            submitBtn.disabled = true;
-        }
-    }
-</script>
+<script src="/scripts/upload.js"></script>

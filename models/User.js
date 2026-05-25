@@ -17,6 +17,30 @@ const UserSchema = new mongoose.Schema({
     senha: {
         type: String,
         required: true
+    },
+    cargo: {
+        type: String,
+        enum: ['mestra', 'admin', 'funcionario'],
+        default: 'funcionario'
+    },
+    ativo: {
+        type: Boolean,
+        default: true
+    },
+    mestra_alias: {
+        type: String,
+        unique: true,
+        sparse: true, // Only enforces uniqueness for documents where this field is populated
+        lowercase: true,
+        trim: true
+    },
+    id_mestra: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    deletado: {
+        type: Boolean,
+        default: false
     }
 }, {
     // Adiciona automaticamente os campos createdAt e updatedAt

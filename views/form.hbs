@@ -3,11 +3,7 @@
         <div>
             <h1 class="page-title">Preencher Formulário</h1>
             <p class="page-subtitle" style="margin-bottom: 0;">
-                {{#if editavel}}
-                Os campos foram extraídos dos templates. Você pode editar os labels e placeholders antes de gerar.
-                {{else}}
                 Preencha os campos abaixo para gerar os seus documentos.
-                {{/if}}
             </p>
         </div>
     </div>
@@ -21,12 +17,12 @@
     {{#if templatesSelecionados.length}}
     <div class="card card-static template-info-box">
         <h4 class="template-info-title">
-            {{#if nomeGrupo}}📋 {{nomeGrupo}} — {{/if}}Templates incluídos:
+            {{#if nomeGrupo}}<i class="ph ph-clipboard-text"></i> {{nomeGrupo}} — {{/if}}Templates incluídos:
         </h4>
         <ul class="template-list-inline">
             {{#each templatesSelecionados}}
             <li>
-                <span>📄</span> <strong>{{this.titulo}}</strong>
+                <span><i class="ph ph-file-text"></i></span> <strong>{{this.titulo}}</strong>
             </li>
             {{/each}}
         </ul>
@@ -42,43 +38,26 @@
             {{#if grupoId}}
             <input type="hidden" name="grupoId" value="{{grupoId}}">
             {{/if}}
-            <input type="hidden" name="editavel" value="{{editavel}}">
 
             <div style="display: flex; flex-direction: column; gap: var(--spacing-lg);">
                 {{#if fields.length}}
                 {{#each fields}}
                 <div class="form-group" style="margin-bottom: 0;">
-                    {{#if ../editavel}}
-                    <!-- Modo Editável: labels e placeholders podem ser alterados -->
-                    <div style="display: flex; align-items: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-xs);">
-                        <input type="text" name="labels[{{this.campo}}]" value="{{this.label}}"
-                            class="form-control-inline form-label"
-                            style="text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 0; cursor: text;"
-                            title="Clique para editar o label">
-                    </div>
-                    {{else}}
-                    <!-- Modo Somente Preenchimento -->
                     <label for="field-{{this.campo}}" class="form-label"
                         style="text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">
                         {{this.label}}
                     </label>
-                    {{/if}}
 
-                    <!-- Badges de pertencimento -->
+                    <!-- Botão de Referências -->
                     <div class="field-badges">
-                        {{#each this.documentos}}
-                        <span class="badge badge-doc">📄 {{this}}</span>
-                        {{/each}}
+                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 4px 8px; font-size: 0.75rem;" 
+                            onclick='ModalSystem.showList("Referências: {{this.campo}}", {{{json this.documentos}}})'>
+                            Ver Referências
+                        </button>
                     </div>
 
-                    {{#if ../editavel}}
                     <input type="text" id="field-{{this.campo}}" name="valores[{{this.campo}}]" class="form-control"
                         placeholder="{{this.placeholder}}" required style="margin-top: var(--spacing-sm);">
-                    <input type="hidden" name="placeholders[{{this.campo}}]" value="{{this.placeholder}}">
-                    {{else}}
-                    <input type="text" id="field-{{this.campo}}" name="valores[{{this.campo}}]" class="form-control"
-                        placeholder="{{this.placeholder}}" required style="margin-top: var(--spacing-sm);">
-                    {{/if}}
                 </div>
                 {{/each}}
                 {{else}}
